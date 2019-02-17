@@ -1,0 +1,124 @@
+
+  setwd("C:\\Users\\parkjeongah\\Desktop\\working\\공모전\\fulldata")
+  data_sub = read.csv(file="fulldata.csv", header=T)  
+  head(data)  
+  View(data)
+  
+  
+  library(nnet)
+  library(caret) 
+  library(ROCR)  
+
+  str(data)  
+  
+  set.seed(404)
+  data_sub$sample = sample(1:10, replace=TRUE, size=nrow(data_sub))
+  
+  data_sub1 = data_sub[data_sub$sample==1, ]
+  data_sub2 = data_sub[data_sub$sample==2, ]
+  data_sub3 = data_sub[data_sub$sample==3, ]
+  data_sub4 = data_sub[data_sub$sample==4, ]
+  data_sub5 = data_sub[data_sub$sample==5, ]
+  data_sub6 = data_sub[data_sub$sample==6, ]
+  data_sub7 = data_sub[data_sub$sample==7, ]
+  data_sub8 = data_sub[data_sub$sample==8, ]
+  data_sub9 = data_sub[data_sub$sample==9, ]
+  data_sub10 = data_sub[data_sub$sample==10, ]
+  
+  
+  data_test = rbind(data_sub3, data_sub4, data_sub5, data_sub6, data_sub7, data_sub8, data_sub9, data_sub10)
+  data_train = rbind(data_sub1, data_sub2)
+  
+  str(data_test)
+  
+  
+  library(neuralnet)
+  library(NeuralNetTools)
+  library(devtools)
+  source_url('https://gist.githubusercontent.com/Peque/41a9e20d6687f2f3108d/raw/85e14f3a292e126f1454864427e3a189c2fe33f3/nnet_plot_update.r')  
+  
+  
+  # 회귀분석
+  
+  lm.fit = lm(price ~ transaction_year + transaction_month + year_of_completion + household_count_sites + dong_count+household_count_area+ floor +supply_area+ room+exclusive_use_area , data=data_train) # 회귀분석
+  
+  lm.predict = predict(lm.fit) 
+  
+  
+  summary(lm.fit) # R-square 42%. 
+  
+  
+  
+  mean((lm.predict-data_train$price_log)^2) #mean squared error _이거 에러남;;
+  
+  
+  
+  length(lm.predict)
+  length(data_train$price_log) # length가 다름.
+  
+  
+  a = lm.predict-data_train$price
+  mean(a^2, na.rm=T) # 위 정의대로 했는너 ㄴ무 크게나옴....모르겠음 ㅠㅠ
+  
+  plot(data_train$price_log, lm.predict,
+       main="Linear regression predictions vs actual", xlab="Actual")
+  
+  
+  
+  
+  ## 인공신경망.
+  
+  
+  nn.model2 = neuralnet(price ~ transaction_year + transaction_month + year_of_completion + household_count_sites + dong_count+household_count_area+ floor +supply_area+ room+exclusive_use_area , data=data_train , hidden=c(5,3), linear.output=T)
+
+  
+  
+  
+  str(data_train)
+  dim(data_train)
+  
+  # 위 인공신경망 모델에서 각 변수의 중요도 확인
+  
+  garson(nn.model2) # 6개 정도 혹은 3개-4개정도 선택
+  
+  plot(nn.model2)
+  
+
+  
+  
+  nn.model2$net.result
+  nn.model2$weights
+  nn.model2$result.matrix
+  
+  nn.model2$covariate
+  
+  nn.model2$net.result #319241ㄱ개
+  
+  
+  
+  
+  
+  
+  
+  dim(data_test)
+  predict_testNN = compute(nn.model2, data_test[,1:36]) 
+  predict_testNN = (predict_testNN$net.result * (max(data_test$price) - min(data_test$price))) + min(data_price)
+                    
+  
+                    
+                    
+  plot(data_test$price, predict_testNN, col="blue", pch=16, ylab="predicted rating NN", xlab="real price")
+  
+  abline(0,1)
+  
+  
+  
+  
+  
+  
+  # RMSE
+  RMSE.NN = ( sum((data_test$price - predict_testNN)^2)/nrow(data_test)) ^0.5
+  
+  
+  
+  
